@@ -14,17 +14,6 @@
 
 # CMake file for the firebase_app library
 
-cmake_minimum_required (VERSION 3.1)
-set (CMAKE_CXX_STANDARD 11)
-
-include(FindPkgConfig)
-include(binary_to_array)
-include(download_pod_headers)
-
-project(firebase_app NONE)
-enable_language(C)
-enable_language(CXX)
-
 # Define how to generate google_services_resource_(source/header)
 binary_to_array("google_services_resource"
     "${CMAKE_CURRENT_LIST_DIR}/google_services.fbs"
@@ -32,14 +21,20 @@ binary_to_array("google_services_resource"
     "${FIREBASE_GEN_FILE_DIR}/app")
 
 # Define the resource builds needed for Android
+firebase_cpp_gradle(":app:app_resources:generateDexJarRelease"
+    "${CMAKE_CURRENT_LIST_DIR}/app_resources/build/dexed.jar")
 binary_to_array("app_resources"
     "${CMAKE_CURRENT_LIST_DIR}/app_resources/build/dexed.jar"
     "firebase_app"
     "${FIREBASE_GEN_FILE_DIR}/app")
+firebase_cpp_gradle(":app:google_api_resources:generateDexJarRelease"
+    "${CMAKE_CURRENT_LIST_DIR}/google_api_resources/build/dexed.jar")
 binary_to_array("google_api_resources"
     "${CMAKE_CURRENT_LIST_DIR}/google_api_resources/build/dexed.jar"
     "google_api"
     "${FIREBASE_GEN_FILE_DIR}/app")
+firebase_cpp_gradle(":app:invites_resources:generateDexJarRelease"
+    "${CMAKE_CURRENT_LIST_DIR}/invites_resources/build/dexed.jar")
 binary_to_array("invites_resources"
     "${CMAKE_CURRENT_LIST_DIR}/invites_resources/build/dexed.jar"
     "firebase_invites"
@@ -340,34 +335,24 @@ if(MSVC)
   add_definitions(-DNOMINMAX)
 endif()
 
-if(IOS)
+if(ANDROID)
+  firebase_cpp_proguard_file(app)
+elseif(IOS)
   # Enable Automatic Reference Counting (ARC).
   set_property(
     TARGET firebase_app
     APPEND_STRING PROPERTY
     COMPILE_FLAGS "-fobjc-arc")
 
-  # Setup the target for getting the Firebase iOS SDK headers through Cocoapods.
-  set(pod_target_name "download_app_pod_headers")
-  set(pods_dir "${PROJECT_BINARY_DIR}/Pods")
-  set(pod_list "")
-  list(APPEND pod_list "'Firebase/Core', '6.9.0'")
-  list(APPEND pod_list "'Firebase/DynamicLinks', '6.9.0'")
-
-  setup_pod_headers_target("${pod_target_name}" "${pods_dir}" "${pod_list}")
-
-  # Add the Cocoapod headers to the include directories
-  set(base_header_dir "${pods_dir}/Pods/Headers/Public")
-  target_include_directories(firebase_app
-    PRIVATE
-      ${base_header_dir}
-      ${base_header_dir}/FirebaseCore
-      ${base_header_dir}/FirebaseDynamicLinks
-      ${base_header_dir}/FirebaseInstanceID
+  # Add empty include path to get root include folder '.'
+  setup_pod_headers(
+    firebase_app
+    POD_NAMES
+      .
+      FirebaseCore
+      FirebaseDynamicLinks
+      FirebaseInstanceID
   )
-
-  # Add a dependency to downloading the headers onto app.
-  add_dependencies(firebase_app ${pod_target_name})
 endif()
 
 if (NOT ANDROID AND NOT IOS)

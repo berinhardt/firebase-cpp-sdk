@@ -45,6 +45,12 @@ option(FIREBASE_CPP_BUILD_TESTS
 option(FIREBASE_FORCE_FAKE_SECURE_STORAGE
        "Disable use of platform secret store and use fake impl." OFF)
 
+if(WIN32)
+  # Turn on the use of the __cplusplus compiler define that is used to detect if
+  # move operators are supported
+  add_definitions("/Zc:__cplusplus")
+endif()
+
 list(INSERT CMAKE_MODULE_PATH 0 ${CMAKE_CURRENT_LIST_DIR}/cmake)
 include(external_rules)
 
@@ -60,23 +66,6 @@ endif()
 # set it manually if ANDROID_NDK has been defined.
 if(DEFINED ANDROID_NDK)
   set(ANDROID 1)
-endif()
-
-if(DEFINED CMAKE_TOOLCHAIN_FILE AND NOT ANDROID)
-  # Force using the toolchain file, as otherwise it loads it later in the
-  # process, after several of the checks against it have failed.
-  if(IS_ABSOLUTE ${CMAKE_TOOLCHAIN_FILE})
-    message("Using Toolchain File: ${CMAKE_TOOLCHAIN_FILE}")
-    include("${CMAKE_TOOLCHAIN_FILE}")
-  else()
-    message("Using Toolchain File: ${CMAKE_BINARY_DIR}/${CMAKE_TOOLCHAIN_FILE}")
-    include("${CMAKE_BINARY_DIR}/${CMAKE_TOOLCHAIN_FILE}")
-  endif()
-endif()
-
-# We're on iOS if the system root is set to "iphone" or some variant.
-if("${CMAKE_OSX_SYSROOT}" MATCHES "iphone")
-  set(IOS TRUE CACHE BOOL "Target platform is iOS.")
 endif()
 
 # Set directories needed by the Firebase subprojects
@@ -107,8 +96,15 @@ set(FIREBASE_DOWNLOAD_DIR ${PROJECT_BINARY_DIR}/downloads)
 # Run the CMake build logic that will download all the external dependencies.
 download_external_sources()
 
-# Disable the Flatbuffer build tests
+# Disable the Flatbuffer build tests, install and flathash
 set(FLATBUFFERS_BUILD_TESTS OFF CACHE BOOL "")
+set(FLATBUFFERS_INSTALL OFF CACHE BOOL "")
+set(FLATBUFFERS_FLATHASH OFF CACHE BOOL "")
+
+# Disable buliding flatc if cross compiling
+if(IOS OR ANDROID)
+  set(FLATBUFFERS_BUILD_FLATC OFF CACHE BOOL "")
+endif()
 
 # Add flatbuffers as a subdirectory, and set the directory variables for it,
 # so that the sub Firebase projects can depend upon it if necessary.
@@ -224,7 +220,6 @@ if(ANDROID OR IOS)
   endif()
 
   set(FLATBUFFERS_FLATC_EXECUTABLE ${firebase_external_flatc} CACHE STRING "")
-  set(FLATBUFFERS_BUILD_FLATC OFF CACHE BOOL "")
 
   # Setup the flatc custom build target.
   # These commands are executed from within the currect context, which has set
@@ -272,6 +267,11 @@ endif()
 # Define this directory to be the root of the C++ SDK, which the libraries can
 # then refer to.
 set(FIREBASE_CPP_SDK_ROOT_DIR ${CMAKE_CURRENT_LIST_DIR})
+
+include(binary_to_array)
+include(firebase_cpp_gradle)
+
+add_subdirectory(ios_pod)
 
 # If we're building tests, we need to include the 'testing' folder before any
 # of the tests actually get built.
