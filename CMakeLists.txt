@@ -48,7 +48,7 @@ option(FIREBASE_FORCE_FAKE_SECURE_STORAGE
 if(WIN32)
   # Turn on the use of the __cplusplus compiler define that is used to detect if
   # move operators are supported
-  add_definitions("/Zc:__cplusplus")
+  # add_definitions("/Zc:__cplusplus")
 endif()
 
 list(INSERT CMAKE_MODULE_PATH 0 ${CMAKE_CURRENT_LIST_DIR}/cmake)

@@ -1,0 +1,15 @@
+admob/admob_resources/build/
+admob/.externalNativeBuild/
+admob/build/
+.gradle/
+analytics/.externalNativeBuild/
+analytics/build/
+analytics/generate_constants_lib.pyc
+app/.externalNativeBuild/
+app/app_resources/build/
+app/build/
+app/google_api_resources/build/
+app/invites_resources/build/
+messaging/messaging_java/build/
+remote_config/.externalNativeBuild/
+remote_config/build/
